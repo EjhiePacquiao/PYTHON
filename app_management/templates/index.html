@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Student Management</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-wrap container py-4">
+        <h2 class="title">Student Management</h2>
+
+        <div class="grid">
+            <!-- LEFT: FORM & PHOTO -->
+            <div class="left-card card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">STUDENT INFORMATION</h5>
+
+                    <div class="photo-wrap text-center mb-3 position-relative">
+                        <div class="photo-container">
+                            <img id="previewPhoto" src="{{ url_for('static', filename='uploads/placeholder.png') }}"
+                                alt="Student photo">
+
+                            <input id="image" name="image" type="file" accept="image/*" class="hidden">
+                            <button type="button" id="uploadBtn" class="upload-icon-btn">📷</button>
+                        </div>
+                    </div>
+
+                    <form id="studentForm" method="post" enctype="multipart/form-data" novalidate>
+                        <input type="hidden" name="sid" id="sid">
+
+                        <div class="mb-2">
+                            <label>ID Number</label>
+                            <input id="idno" name="idno" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label>Last Name</label>
+                            <input id="lastname" name="lastname" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label>First Name</label>
+                            <input id="firstname" name="firstname" class="form-control" required>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <label>Course</label>
+                                <select id="course" name="course" class="form-select" required>
+                                    <option value="">--Choose--</option>
+                                    <option value="BSIT">BSIT</option>
+                                    <option value="BSCS">BSCS</option>
+                                    <option value="BSCPE">BSCPE</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label>Level</label>
+                                <select id="level" name="level" class="form-select" required>
+                                    <option value="">--Choose--</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-end mt-3">
+                            <button id="submitBtn" type="button" class="btn btn-primary">Save</button>
+                            <button id="cancelBtn" type="button" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RIGHT: TABLE -->
+            <!-- RIGHT: TABLE -->
+            <div class="right-card card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Student Records</h5>
+                    <div class="table-responsive">
+                        <table id="studentsTable" class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>IDNO</th>
+                                    <th>NAME</th>
+                                    <th>COURSE & LEVEL</th>
+                                    <th class="text-center">ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in students %}
+                                <tr data-id="{{ s['id'] }}">
+                                    <td>{{ s['idno'] }}</td>
+                                    <td>{{ s['lastname'] }}, {{ s['firstname'] }}</td>
+                                    <td>{{ s['course'] }} - {{ s['level'] }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary btn-edit me-1" title="Edit"
+                                            data-id="{{ s['id'] }}">✎</button>
+                                        <button class="btn btn-sm btn-outline-danger btn-delete" title="Delete"
+                                            data-id="{{ s['id'] }}">🗑</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-3 small">© EJHIE C. PACQUIAO - 2025</footer>
+    </div>
+
+    <!-- NOTIFY -->
+    <div id="centerNotify" class="center-notify hidden">Info must not be empty</div>
+
+    <!-- DELETE CONFIRM -->
+    <div id="confirmModal" class="confirm-modal hidden">
+        <div class="confirm-card">
+            <p>Are you sure you want to delete this student?</p>
+            <div class="d-flex gap-2 justify-content-center mt-2">
+                <button id="confirmYes" class="btn btn-danger">Yes, delete</button>
+                <button id="confirmNo" class="btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        const state = { editingId: null, pendingDeleteId: null };
+        const notifyEl = document.getElementById('centerNotify');
+        const form = document.getElementById('studentForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const imageInput = document.getElementById('image');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const previewPhoto = document.getElementById('previewPhoto');
+        const sidInput = document.getElementById('sid');
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmYes = document.getElementById('confirmYes');
+        const confirmNo = document.getElementById('confirmNo');
+        const tbody = document.querySelector('#studentsTable tbody');
+
+        const PLACEHOLDER = "{{ url_for('static', filename='uploads/placeholder.png') }}";
+
+        // Helpers
+        function showNotify(msg, ms = 1800) {
+            notifyEl.textContent = msg;
+            notifyEl.classList.remove('hidden');
+            notifyEl.classList.add('show');
+            setTimeout(() => {
+                notifyEl.classList.remove('show');
+                notifyEl.classList.add('hidden');
+            }, ms);
+        }
+
+        // --- Image upload live preview ---
+        uploadBtn.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                previewPhoto.src = ev.target.result;
+                previewPhoto.dataset.changed = "true";
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // --- Visual ReadOnly (for display mode only)
+        function setReadOnlyVisual(readonly = true) {
+            ['idno', 'lastname', 'firstname', 'course', 'level'].forEach(id => {
+                const el = document.getElementById(id);
+                if (readonly) el.classList.add('readonly');
+                else el.classList.remove('readonly');
+            });
+        }
+
+        // --- Load table from server ---
+        async function loadStudents() {
+            try {
+                const res = await fetch('/students');
+                const data = await res.json();
+                tbody.innerHTML = '';
+                for (const s of data) {
+                    const tr = document.createElement('tr');
+                    tr.dataset.id = s.id;
+                    tr.innerHTML = `
+                    <td>${escapeHtml(s.idno)}</td>
+                    <td>${escapeHtml(s.lastname)}, ${escapeHtml(s.firstname)}</td>
+                    <td>${escapeHtml(s.course)} - ${escapeHtml(s.level)}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary btn-edit me-1" data-id="${s.id}">✎</button>
+                        <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${s.id}">🗑</button>
+                    </td>`;
+                    tbody.appendChild(tr);
+                }
+            } catch (err) {
+                console.error('Failed to load students', err);
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        // --- Row and button actions ---
+        tbody.addEventListener('click', async ev => {
+            const btn = ev.target.closest('button');
+            const tr = ev.target.closest('tr');
+            if (!tr) return;
+            const sid = tr.dataset.id;
+
+            // Edit button
+            if (btn && btn.classList.contains('btn-edit')) {
+                ev.stopPropagation();
+                try {
+                    const res = await fetch(`/student/${sid}`);
+                    const data = await res.json();
+                    sidInput.value = data.id;
+                    document.getElementById('idno').value = data.idno;
+                    document.getElementById('lastname').value = data.lastname;
+                    document.getElementById('firstname').value = data.firstname;
+                    document.getElementById('course').value = data.course;
+                    document.getElementById('level').value = data.level;
+
+                    const photoSrc = data.photo ? data.photo : PLACEHOLDER;
+                    previewPhoto.src = photoSrc;
+                    previewPhoto.dataset.changed = "false";
+
+                    state.editingId = sid;
+                    submitBtn.textContent = 'Update';
+                    setReadOnlyVisual(false);
+                } catch {
+                    showNotify('Could not load for editing');
+                }
+                return;
+            }
+
+            // Delete button
+            if (btn && btn.classList.contains('btn-delete')) {
+                ev.stopPropagation();
+                state.pendingDeleteId = sid;
+                confirmModal.classList.remove('hidden');
+                return;
+            }
+
+            // Row click → show read-only
+            try {
+                const res = await fetch(`/student/${sid}`);
+                const data = await res.json();
+                sidInput.value = data.id;
+                document.getElementById('idno').value = data.idno;
+                document.getElementById('lastname').value = data.lastname;
+                document.getElementById('firstname').value = data.firstname;
+                document.getElementById('course').value = data.course;
+                document.getElementById('level').value = data.level;
+
+                const photoSrc = data.photo ? data.photo : PLACEHOLDER;
+
+                previewPhoto.src = photoSrc;
+                previewPhoto.dataset.changed = "false";
+
+                state.editingId = sid;
+                submitBtn.textContent = 'Update';
+                setReadOnlyVisual(true);
+            } catch {
+                showNotify('Failed to load record');
+            }
+        });
+
+        // --- Delete confirm ---
+        confirmNo.addEventListener('click', () => confirmModal.classList.add('hidden'));
+        confirmYes.addEventListener('click', async () => {
+            const sid = state.pendingDeleteId;
+            if (!sid) return;
+            try {
+                const res = await fetch(`/delete/${sid}`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    showNotify('Deleted');
+                    await loadStudents();
+                    resetForm();
+                } else {
+                    showNotify(data.error || 'Delete failed');
+                }
+            } catch (err) {
+                showNotify('Delete failed');
+                console.error(err);
+            } finally {
+                confirmModal.classList.add('hidden');
+            }
+        });
+
+        // --- Cancel ---
+        document.getElementById('cancelBtn').addEventListener('click', resetForm);
+
+        function resetForm() {
+            form.reset();
+            previewPhoto.src = PLACEHOLDER;
+            sidInput.value = '';
+            state.editingId = null;
+            submitBtn.textContent = 'Save';
+            setReadOnlyVisual(false);
+            previewPhoto.dataset.changed = "false";
+        }
+
+        // --- Save ---
+        submitBtn.addEventListener('click', saveStudent);
+
+        async function saveStudent() {
+            const idno = document.getElementById('idno').value.trim();
+            const ln = document.getElementById('lastname').value.trim();
+            const fn = document.getElementById('firstname').value.trim();
+            const c = document.getElementById('course').value;
+            const l = document.getElementById('level').value;
+
+            if (!(idno && ln && fn && c && l)) {
+                showNotify('Info must not be empty');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('idno', idno);
+            formData.append('lastname', ln);
+            formData.append('firstname', fn);
+            formData.append('course', c);
+            formData.append('level', l);
+
+            const sid = sidInput.value;
+            if (sid) {
+                formData.append('sid', sid);
+            }
+
+            // Only append image if a file was actually selected
+            if (imageInput.files && imageInput.files.length > 0) {
+                formData.append('image', imageInput.files[0]);
+                console.log('DEBUG - Appending image:', imageInput.files[0].name);
+            } else {
+                console.log('DEBUG - No image file selected');
+            }
+
+            const url = sid ? `/update/${sid}` : '/add';
+
+            try {
+                const res = await fetch(url, { method: 'POST', body: formData });
+                const data = await res.json();
+                if (!res.ok) {
+                    showNotify(data.error || 'Save failed');
+                    return;
+                }
+                showNotify(data.message || 'Saved');
+                await loadStudents();
+                resetForm();
+            } catch (err) {
+                console.error('Save failed', err);
+                showNotify('Save failed');
+            }
+        }
+        // --- Init ---
+        setReadOnlyVisual(false);
+        loadStudents();
+    </script>
+
+</body>
+
+</html>
