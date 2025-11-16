@@ -1,0 +1,234 @@
+/* General layout */
+body {
+    background: #f3f4f6;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Container */
+.app-wrap {
+    max-width: 1200px;
+}
+
+/* Title */
+.title {
+    text-align: center;
+    color: #423a9b;
+    margin-bottom: 20px;
+}
+
+/* Grid layout */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Card styling */
+.left-card,
+.right-card {
+    background: #fff;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+/* Photo area */
+.photo-container {
+    position: relative;
+    display: inline-block;
+}
+
+.photo-container img {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 3px solid #e0e0e0;
+    transition: transform 0.3s ease;
+}
+
+.photo-container img:hover {
+    transform: scale(1.02);
+}
+
+.hidden {
+    display: none;
+}
+
+/* Camera icon button */
+.upload-icon-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: #7c83fd;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0.9;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.upload-icon-btn:hover {
+    background: #6b73e9;
+    transform: scale(1.1);
+}
+
+.upload-icon-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #7c83fd;
+    border-color: #7c83fd;
+}
+
+.btn-primary:hover {
+    background-color: #6b73e9;
+    border-color: #6b73e9;
+}
+
+/* Table styling */
+.table {
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    /* adds spacing between rows */
+}
+
+.table th {
+    background-color: #f9f9fb;
+    color: #333;
+    text-align: center;
+    font-weight: 600;
+    border: none;
+}
+
+.table tbody tr {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 0 1px #e0e0e0 inset;
+    transition: all 0.25s ease;
+    cursor: pointer;
+}
+
+.table tbody tr td {
+    border-top: none;
+    border-bottom: none;
+    vertical-align: middle;
+}
+
+/* Hover effect: button-like highlight */
+.table tbody tr:hover {
+    background-color: #eef0ff;
+    /* same hue as Save button */
+    box-shadow: 0 0 0 2px #7c83fd inset, 0 2px 6px rgba(124, 131, 253, 0.2);
+    transform: scale(1.01);
+}
+
+/* Remove cell borders but keep clean layout */
+.table> :not(caption)>*>* {
+    border-bottom: none;
+}
+
+/* Action buttons alignment */
+.table .btn-edit,
+.table .btn-delete {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    padding: 0;
+}
+
+/* Make table cells evenly spaced */
+.table td,
+.table th {
+    text-align: center;
+    padding: 10px 8px;
+}
+
+
+/* Center notification */
+.center-notify {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(60, 60, 60, 0.9);
+    color: #fff;
+    padding: 15px 25px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 999;
+}
+
+.center-notify.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Confirm modal */
+.confirm-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.confirm-modal.hidden {
+    display: none;
+}
+
+.confirm-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 25px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.25s ease;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+}
+
+/* Visual readonly state (does not disable form submission) */
+.readonly {
+    pointer-events: none;
+    background: #f4f6fb;
+    color: #333;
+    opacity: 0.95;
+}
